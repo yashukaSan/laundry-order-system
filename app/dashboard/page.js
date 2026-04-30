@@ -1,8 +1,8 @@
-import Link from 'next/link';
-import DashboardStats from '@/components/DashboardStats';
-import StatusBadge from '@/components/StatusBadge';
-import connectDB from '@/lib/mongodb';
-import Order from '@/models/Order';
+import Link from "next/link";
+import DashboardStats from "@/components/DashboardStats";
+import StatusBadge from "@/components/StatusBadge";
+import connectDB from "@/lib/mongodb";
+import Order from "@/models/Order";
 
 // Query MongoDB directly — no self-HTTP-fetch (breaks on Vercel)
 async function getDashboardData() {
@@ -17,14 +17,14 @@ async function getDashboardData() {
               $group: {
                 _id: null,
                 totalOrders: { $sum: 1 },
-                totalRevenue: { $sum: '$totalAmount' },
+                totalRevenue: { $sum: "$totalAmount" },
               },
             },
           ],
           byStatus: [
             {
               $group: {
-                _id: '$status',
+                _id: "$status",
                 count: { $sum: 1 },
               },
             },
@@ -61,16 +61,16 @@ async function getDashboardData() {
       recentOrders: result.recentOrders,
     };
   } catch (error) {
-    console.error('Dashboard DB error:', error);
+    console.error("Dashboard DB error:", error);
     return null;
   }
 }
 
 function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -80,8 +80,12 @@ export default async function DashboardPage() {
   if (!data || !data.success) {
     return (
       <div className="text-center py-20">
-        <p className="text-red-500 font-medium">Failed to load dashboard data.</p>
-        <p className="text-sm text-gray-400 mt-1">Check your MONGODB_URI in environment variables.</p>
+        <p className="text-red-500 font-medium">
+          Failed to load dashboard data.
+        </p>
+        <p className="text-sm text-gray-400 mt-1">
+          Check your MONGODB_URI in environment variables.
+        </p>
       </div>
     );
   }
@@ -92,7 +96,9 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Overview of your laundry operations</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Overview of your laundry operations
+          </p>
         </div>
         <Link
           href="/orders/create"
@@ -109,7 +115,10 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-800">Recent Orders</h2>
-          <Link href="/orders" className="text-sm text-indigo-600 hover:underline font-medium">
+          <Link
+            href="/orders"
+            className="text-sm text-indigo-600 hover:underline font-medium"
+          >
             View all →
           </Link>
         </div>
@@ -129,18 +138,35 @@ export default async function DashboardPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-6 py-3 font-medium text-gray-500">Order ID</th>
-                  <th className="text-left px-6 py-3 font-medium text-gray-500">Customer</th>
-                  <th className="text-left px-6 py-3 font-medium text-gray-500">Status</th>
-                  <th className="text-right px-6 py-3 font-medium text-gray-500">Amount</th>
-                  <th className="text-right px-6 py-3 font-medium text-gray-500">Date</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-500">
+                    Order ID
+                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-500">
+                    Customer
+                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-500">
+                    Status
+                  </th>
+                  <th className="text-right px-6 py-3 font-medium text-gray-500">
+                    Amount
+                  </th>
+                  <th className="text-right px-6 py-3 font-medium text-gray-500">
+                    Date
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.recentOrders.map((order) => (
-                  <tr key={order.orderId} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-gray-500 text-xs">{order.orderId}</td>
-                    <td className="px-6 py-4 font-medium text-gray-800">{order.customerName}</td>
+                  <tr
+                    key={order.orderId}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-mono text-gray-500 text-xs">
+                      {order.orderId}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-800">
+                      {order.customerName}
+                    </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={order.status} />
                     </td>
