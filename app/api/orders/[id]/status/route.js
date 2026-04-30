@@ -1,20 +1,19 @@
-import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
+import connectDB from "@/lib/mongodb";
 import Order from "@/models/Order";
 
 const VALID_STATUSES = ["RECEIVED", "PROCESSING", "READY", "DELIVERED"];
 
-// API 4: PATCH /api/orders/[id]/status (Update Order Status)
+// PATCH /api/orders/[id]/status — Update the status of an order
 export async function PATCH(request, { params }) {
   try {
-    await dbConnect();
-    const { id } = params;
+    await connectDB();
+
+    const { id } = await params;
     const body = await request.json();
     const { status } = body;
 
-    // Validate status
-    if (!VALID_STATUSES.includes(status)) {
-      return NextResponse.json(
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return Response.json(
         {
           success: false,
           message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}`,
@@ -23,27 +22,28 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    // Update in MongoDB
-    const updatedOrder = await Order.findOneAndUpdate(
+    const order = await Order.findOneAndUpdate(
       { orderId: id },
-      {
-        status: status,
-        updatedAt: new Date(),
-      },
-      { new: true }, // Return the updated document
-    );
+      { status },
+      { new: true },
+    ).lean();
 
-    if (!updatedOrder) {
-      return NextResponse.json(
-        { success: false, message: "Order not found" },
+    if (!order) {
+      return Response.json(
+        { success: false, message: `Order "${id}" not found` },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({ success: true, order: updatedOrder });
+    return Response.json({
+      success: true,
+      message: "Status updated successfully",
+      order,
+    });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
+    console.error("PATCH /api/orders/[id]/status error:", error);
+    return Response.json(
+      { success: false, message: "Server error" },
       { status: 500 },
     );
   }
