@@ -1,68 +1,64 @@
-import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
-import Order from "@/models/Order";
+import connectDB from '@/lib/mongodb';
+import Order from '@/models/Order';
 
-// API 5: GET /api/dashboard (Dashboard Stats)
+// GET /api/dashboard — Returns summary stats
 export async function GET() {
   try {
-    await dbConnect();
+    await connectDB();
 
-    // 1. Get total orders count
-    const totalOrders = await Order.countDocuments();
-
-    // 2. Get total revenue (sum of all totalAmounts)
-    const revenueAggregation = await Order.aggregate([
+    const [result] = await Order.aggregate([
       {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$totalAmount" },
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: '$totalAmount' },
+              },
+            },
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          recentOrders: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            {
+              $project: {
+                orderId: 1,
+                customerName: 1,
+                totalAmount: 1,
+                status: 1,
+                createdAt: 1,
+              },
+            },
+          ],
         },
       },
     ]);
-    const totalRevenue =
-      revenueAggregation.length > 0 ? revenueAggregation[0].totalRevenue : 0;
 
-    // 3. Count orders per status
-    const statusAggregation = await Order.aggregate([
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const summary = result.summary[0] || { totalOrders: 0, totalRevenue: 0 };
 
-    // Format the status counts into a clean object
-    const byStatus = {
-      RECEIVED: 0,
-      PROCESSING: 0,
-      READY: 0,
-      DELIVERED: 0,
-    };
-
-    statusAggregation.forEach((stat) => {
-      if (byStatus[stat._id] !== undefined) {
-        byStatus[stat._id] = stat.count;
-      }
+    const byStatus = { RECEIVED: 0, PROCESSING: 0, READY: 0, DELIVERED: 0 };
+    result.byStatus.forEach(({ _id, count }) => {
+      byStatus[_id] = count;
     });
 
-    const recentOrders = await Order.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select("orderId customerName status totalAmount createdAt");
-
-    // Return the clean JSON response requested
-    return NextResponse.json({
+    return Response.json({
       success: true,
-      totalOrders,
-      totalRevenue,
+      totalOrders: summary.totalOrders,
+      totalRevenue: summary.totalRevenue,
       byStatus,
-      recentOrders,
+      recentOrders: result.recentOrders,
     });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    );
+    console.error('GET /api/dashboard error:', error);
+    return Response.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
