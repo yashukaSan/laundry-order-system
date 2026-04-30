@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import StatusBadge from "@/components/StatusBadge";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import StatusBadge from '@/components/StatusBadge';
 
-const STATUS_OPTIONS = ["RECEIVED", "PROCESSING", "READY", "DELIVERED"];
+const STATUS_OPTIONS = ['RECEIVED', 'PROCESSING', 'READY', 'DELIVERED'];
 
 function formatDate(dateStr) {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 }
 
@@ -23,10 +23,10 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [newStatus, setNewStatus] = useState("");
+  const [error, setError] = useState('');
+  const [newStatus, setNewStatus] = useState('');
   const [updating, setUpdating] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -37,13 +37,13 @@ export default function OrderDetailPage() {
         const data = await res.json();
 
         if (!data.success) {
-          setError(data.message || "Order not found");
+          setError(data.message || 'Order not found');
         } else {
           setOrder(data.order);
           setNewStatus(data.order.status);
         }
       } catch {
-        setError("Failed to load order. Check your connection.");
+        setError('Failed to load order. Check your connection.');
       } finally {
         setLoading(false);
       }
@@ -58,8 +58,8 @@ export default function OrderDetailPage() {
     setUpdating(true);
     try {
       const res = await fetch(`/api/orders/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
@@ -68,13 +68,13 @@ export default function OrderDetailPage() {
         setToast(`Error: ${data.message}`);
       } else {
         setOrder(data.order);
-        setToast("Status updated successfully!");
+        setToast('Status updated successfully!');
       }
     } catch {
-      setToast("Network error. Please try again.");
+      setToast('Network error. Please try again.');
     } finally {
       setUpdating(false);
-      setTimeout(() => setToast(""), 3000);
+      setTimeout(() => setToast(''), 3000);
     }
   };
 
@@ -96,10 +96,7 @@ export default function OrderDetailPage() {
       <div className="text-center py-24">
         <p className="text-4xl mb-4">⚠️</p>
         <p className="text-red-500 font-medium mb-4">{error}</p>
-        <Link
-          href="/orders"
-          className="text-indigo-600 hover:underline text-sm font-medium"
-        >
+        <Link href="/orders" className="text-indigo-600 hover:underline text-sm font-medium">
           ← Back to Orders
         </Link>
       </div>
@@ -112,9 +109,9 @@ export default function OrderDetailPage() {
       {toast && (
         <div
           className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-lg transition-all ${
-            toast.startsWith("Error")
-              ? "bg-red-100 text-red-700 border border-red-200"
-              : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+            toast.startsWith('Error')
+              ? 'bg-red-100 text-red-700 border border-red-200'
+              : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
           }`}
         >
           {toast}
@@ -133,12 +130,8 @@ export default function OrderDetailPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-xs font-mono text-gray-400 mb-1">
-              {order.orderId}
-            </p>
-            <h1 className="text-xl font-bold text-gray-900">
-              {order.customerName}
-            </h1>
+            <p className="text-xs font-mono text-gray-400 mb-1">{order.orderId}</p>
+            <h1 className="text-xl font-bold text-gray-900">{order.customerName}</h1>
             <p className="text-gray-500 mt-0.5">{order.phoneNumber}</p>
           </div>
           <StatusBadge status={order.status} />
@@ -155,9 +148,7 @@ export default function OrderDetailPage() {
             <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1">
               Est. Delivery
             </p>
-            <p className="text-gray-700">
-              {formatDate(order.estimatedDelivery)}
-            </p>
+            <p className="text-gray-700">{formatDate(order.estimatedDelivery)}</p>
           </div>
         </div>
       </div>
@@ -170,35 +161,19 @@ export default function OrderDetailPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-6 py-3 font-medium text-gray-500">
-                Type
-              </th>
-              <th className="text-center px-6 py-3 font-medium text-gray-500">
-                Qty
-              </th>
-              <th className="text-right px-6 py-3 font-medium text-gray-500">
-                Price/item
-              </th>
-              <th className="text-right px-6 py-3 font-medium text-gray-500">
-                Subtotal
-              </th>
+              <th className="text-left px-6 py-3 font-medium text-gray-500">Type</th>
+              <th className="text-center px-6 py-3 font-medium text-gray-500">Qty</th>
+              <th className="text-right px-6 py-3 font-medium text-gray-500">Price/item</th>
+              <th className="text-right px-6 py-3 font-medium text-gray-500">Subtotal</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {order.garments.map((g, i) => (
               <tr key={i} className="hover:bg-gray-50">
-                <td className="px-6 py-3 font-medium text-gray-800">
-                  {g.type}
-                </td>
-                <td className="px-6 py-3 text-center text-gray-600">
-                  {g.quantity}
-                </td>
-                <td className="px-6 py-3 text-right text-gray-600">
-                  ₹{g.pricePerItem}
-                </td>
-                <td className="px-6 py-3 text-right font-semibold text-gray-800">
-                  ₹{g.subtotal}
-                </td>
+                <td className="px-6 py-3 font-medium text-gray-800">{g.type}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{g.quantity}</td>
+                <td className="px-6 py-3 text-right text-gray-600">₹{g.pricePerItem}</td>
+                <td className="px-6 py-3 text-right font-semibold text-gray-800">₹{g.subtotal}</td>
               </tr>
             ))}
           </tbody>
@@ -235,13 +210,11 @@ export default function OrderDetailPage() {
             disabled={updating || newStatus === order.status}
             className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {updating ? "Updating..." : "Update"}
+            {updating ? 'Updating...' : 'Update'}
           </button>
         </div>
         {newStatus === order.status && (
-          <p className="text-xs text-gray-400">
-            Select a different status to update.
-          </p>
+          <p className="text-xs text-gray-400">Select a different status to update.</p>
         )}
       </div>
     </div>
