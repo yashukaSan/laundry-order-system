@@ -1,88 +1,87 @@
-import Link from "next/link";
-import DashboardStats from "../../components/DashboardStats";
-import StatusBadge from "../../components/StatusBadge";
-import dbConnect from "../../lib/mongodb";
-import Order from "../../models/Order";
+import Link from 'next/link';
+import DashboardStats from '@/components/DashboardStats';
+import StatusBadge from '@/components/StatusBadge';
+import connectDB from '@/lib/mongodb';
+import Order from '@/models/Order';
+
+// Query MongoDB directly — no self-HTTP-fetch (breaks on Vercel)
+async function getDashboardData() {
+  try {
+    await connectDB();
+
+    const [result] = await Order.aggregate([
+      {
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: '$totalAmount' },
+              },
+            },
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          recentOrders: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            {
+              $project: {
+                orderId: 1,
+                customerName: 1,
+                totalAmount: 1,
+                status: 1,
+                createdAt: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const summary = result.summary[0] || { totalOrders: 0, totalRevenue: 0 };
+
+    const byStatus = { RECEIVED: 0, PROCESSING: 0, READY: 0, DELIVERED: 0 };
+    result.byStatus.forEach(({ _id, count }) => {
+      byStatus[_id] = count;
+    });
+
+    return {
+      success: true,
+      totalOrders: summary.totalOrders,
+      totalRevenue: summary.totalRevenue,
+      byStatus,
+      recentOrders: result.recentOrders,
+    };
+  } catch (error) {
+    console.error('Dashboard DB error:', error);
+    return null;
+  }
+}
 
 function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 }
 
 export default async function DashboardPage() {
-  let data = null;
-
-  try {
-    await dbConnect();
-
-    // 1. Get total orders count
-    const totalOrders = await Order.countDocuments();
-
-    // 2. Get total revenue (sum of all totalAmounts)
-    const revenueAggregation = await Order.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$totalAmount" },
-        },
-      },
-    ]);
-    const totalRevenue =
-      revenueAggregation.length > 0 ? revenueAggregation[0].totalRevenue : 0;
-
-    // 3. Count orders per status
-    const statusAggregation = await Order.aggregate([
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    // Format the status counts into a clean object
-    const byStatus = {
-      RECEIVED: 0,
-      PROCESSING: 0,
-      READY: 0,
-      DELIVERED: 0,
-    };
-
-    statusAggregation.forEach((stat) => {
-      if (byStatus[stat._id] !== undefined) {
-        byStatus[stat._id] = stat.count;
-      }
-    });
-
-    const recentOrders = await Order.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select("orderId customerName status totalAmount createdAt _id");
-
-    data = {
-      success: true,
-      totalOrders,
-      totalRevenue,
-      byStatus,
-      recentOrders,
-    };
-  } catch (error) {
-    console.error("Error loading dashboard data:", error);
-    data = null;
-  }
+  const data = await getDashboardData();
 
   if (!data || !data.success) {
     return (
       <div className="text-center py-20">
-        <p className="text-red-500 font-medium">
-          Failed to load dashboard data.
-        </p>
-        <p className="text-sm text-gray-400 mt-1">
-          Check your MongoDB connection in .env.local
-        </p>
+        <p className="text-red-500 font-medium">Failed to load dashboard data.</p>
+        <p className="text-sm text-gray-400 mt-1">Check your MONGODB_URI in environment variables.</p>
       </div>
     );
   }
@@ -93,9 +92,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Overview of your laundry operations
-          </p>
+          <p className="text-gray-500 text-sm mt-1">Overview of your laundry operations</p>
         </div>
         <Link
           href="/orders/create"
@@ -112,10 +109,7 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-800">Recent Orders</h2>
-          <Link
-            href="/orders"
-            className="text-sm text-indigo-600 hover:underline font-medium"
-          >
+          <Link href="/orders" className="text-sm text-indigo-600 hover:underline font-medium">
             View all →
           </Link>
         </div>
@@ -135,35 +129,18 @@ export default async function DashboardPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-6 py-3 font-medium text-gray-500">
-                    Order ID
-                  </th>
-                  <th className="text-left px-6 py-3 font-medium text-gray-500">
-                    Customer
-                  </th>
-                  <th className="text-left px-6 py-3 font-medium text-gray-500">
-                    Status
-                  </th>
-                  <th className="text-right px-6 py-3 font-medium text-gray-500">
-                    Amount
-                  </th>
-                  <th className="text-right px-6 py-3 font-medium text-gray-500">
-                    Date
-                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-500">Order ID</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-500">Customer</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-500">Status</th>
+                  <th className="text-right px-6 py-3 font-medium text-gray-500">Amount</th>
+                  <th className="text-right px-6 py-3 font-medium text-gray-500">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.recentOrders.map((order) => (
-                  <tr
-                    key={order.orderId}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-mono text-gray-500 text-xs">
-                      {order.orderId}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      {order.customerName}
-                    </td>
+                  <tr key={order.orderId} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-gray-500 text-xs">{order.orderId}</td>
+                    <td className="px-6 py-4 font-medium text-gray-800">{order.customerName}</td>
                     <td className="px-6 py-4">
                       <StatusBadge status={order.status} />
                     </td>
