@@ -1,68 +1,54 @@
-import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
+import connectDB from "@/lib/mongodb";
 import Order from "@/models/Order";
 
-// API 3: GET /api/orders/[id] (Get Single Order)
-export async function GET(request,{ params }) {
+// GET /api/orders/[id] — Get a single order by orderId
+export async function GET(request, { params }) {
   try {
-    await dbConnect();
+    await connectDB();
+
     const { id } = await params;
-
-    console.log("GET /api/orders/[id] id:", id);
-
-    // Find by custom 'orderId' field, not the MongoDB '_id'
-    let order = await Order.findOne({ orderId: id });
-
-    // If not found by orderId, try by _id (for backward compatibility)
-    if (!order) {
-      order = await Order.findById(id);
-    }
+    const order = await Order.findOne({ orderId: id }).lean();
 
     if (!order) {
-      return NextResponse.json(
-        { success: false, message: "Order not found" },
+      return Response.json(
+        { success: false, message: `Order "${id}" not found` },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({ success: true, order });
+    return Response.json({ success: true, order });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
+    console.error("GET /api/orders/[id] error:", error);
+    return Response.json(
+      { success: false, message: "Server error" },
       { status: 500 },
     );
   }
 }
 
-// API 6: DELETE /api/orders/[id] (Delete Order — Bonus)
+// DELETE /api/orders/[id] — Delete an order by orderId
 export async function DELETE(request, { params }) {
   try {
-    await dbConnect();
+    await connectDB();
+
     const { id } = await params;
+    const order = await Order.findOneAndDelete({ orderId: id }).lean();
 
-    console.log("DELETE /api/orders/[id] id:", id);
-
-    let deletedOrder = await Order.findOneAndDelete({ orderId: id });
-
-    // If not found by orderId, try by _id
-    if (!deletedOrder) {
-      deletedOrder = await Order.findByIdAndDelete(id);
-    }
-
-    if (!deletedOrder) {
-      return NextResponse.json(
-        { success: false, message: "Order not found" },
+    if (!order) {
+      return Response.json(
+        { success: false, message: `Order "${id}" not found` },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
-      message: `Order ${id} deleted successfully`,
+      message: `Order "${id}" deleted successfully`,
     });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
+    console.error("DELETE /api/orders/[id] error:", error);
+    return Response.json(
+      { success: false, message: "Server error" },
       { status: 500 },
     );
   }

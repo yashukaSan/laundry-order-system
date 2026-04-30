@@ -1,112 +1,169 @@
-import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Order from "@/models/Order";
-import priceConfig from "@/lib/priceConfig";
+import GARMENT_PRICES from "@/lib/priceConfig";
 import generateOrderId from "@/lib/generateOrderId";
 
-// API 1: POST /api/orders (Create Order)
-export async function POST(request) {
+// GET /api/orders — List all orders with optional filters
+export async function GET(request) {
   try {
-    console.log("Connecting to DB...");
     await connectDB();
-    console.log("Connected to DB");
-    console.log("Order model:", Order);
 
-    const body = await request.json();
-    console.log("Request body:", body);
-    const { customerName, phoneNumber, garments } = body;
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+    const phone = searchParams.get("phone");
+    const garment = searchParams.get("garment");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
 
-    let totalAmount = 0;
+    const filter = {};
 
-    // Process garments and calculate subtotal
-    const processedGarments = garments.map((item) => {
-      const pricePerItem = priceConfig[item.type] || 0;
-      console.log(`Price for ${item.type}:`, pricePerItem);
-      const subtotal = pricePerItem * item.quantity;
-      totalAmount += subtotal;
-      return { ...item, pricePerItem, subtotal };
+    if (
+      status &&
+      ["RECEIVED", "PROCESSING", "READY", "DELIVERED"].includes(status)
+    ) {
+      filter.status = status;
+    }
+    if (search) {
+      filter.customerName = { $regex: search, $options: "i" };
+    }
+    if (phone) {
+      filter.phoneNumber = { $regex: phone, $options: "i" };
+    }
+    if (garment) {
+      filter["garments.type"] = { $regex: garment, $options: "i" };
+    }
+
+    const skip = (page - 1) * limit;
+    const total = await Order.countDocuments(filter);
+
+    // .lean() returns plain JS objects — avoids Mongoose serialization issues on Vercel
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return Response.json({
+      success: true,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      orders,
     });
-
-    console.log("Processed garments:", processedGarments);
-    console.log("Total amount:", totalAmount);
-
-    const orderId = generateOrderId();
-    console.log("Generated orderId:", orderId);
-
-    // Calculate estimated delivery (Today + 3 days)
-    const estimatedDelivery = new Date();
-    estimatedDelivery.setDate(estimatedDelivery.getDate() + 3);
-
-    // Save to MongoDB
-    console.log("Creating order in DB...");
-    const newOrder = await Order.create({
-      orderId,
-      customerName,
-      phoneNumber,
-      garments: processedGarments,
-      totalAmount,
-      estimatedDelivery,
-      status: "RECEIVED", // Default status
-    });
-    console.log("Order created:", newOrder._id, newOrder.orderId);
-
-    return NextResponse.json(
-      { success: true, orderId, totalAmount, order: newOrder },
-      { status: 201 },
-    );
   } catch (error) {
-    console.error("Error in POST /api/orders:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
+    console.error("GET /api/orders error:", error);
+    return Response.json(
+      { success: false, message: "Server error" },
       { status: 500 },
     );
   }
 }
 
-// API 2: GET /api/orders (List All Orders with Filters)
-export async function GET(request) {
+// POST /api/orders — Create a new order
+export async function POST(request) {
   try {
     await connectDB();
-    const { searchParams } = new URL(request.url);
 
-    // Parse query params
-    const status = searchParams.get("status");
-    const search = searchParams.get("search");
-    const phone = searchParams.get("phone");
-    const page = parseInt(searchParams.get("page")) || 1;
-    const limit = parseInt(searchParams.get("limit")) || 10;
+    const body = await request.json();
+    const { customerName, phoneNumber, garments } = body;
 
-    // Build dynamic filter
-    const filter = {};
-    console.log("GET /api/orders params:", { status, search, phone, page, limit });
-    if (status) filter.status = status;
-    if (phone) filter.phoneNumber = phone;
-    if (search) {
-      // Case-insensitive search on customerName
-      filter.customerName = { $regex: search, $options: "i" };
+    // --- Validation ---
+    if (!customerName || customerName.trim() === "") {
+      return Response.json(
+        { success: false, message: "Customer name is required" },
+        { status: 400 },
+      );
     }
 
-    // Pagination logic
-    const skip = (page - 1) * limit;
+    if (!phoneNumber || !/^\d{10}$/.test(phoneNumber.trim())) {
+      return Response.json(
+        {
+          success: false,
+          message: "A valid 10-digit phone number is required",
+        },
+        { status: 400 },
+      );
+    }
 
-    // Fetch from MongoDB
-    const orders = await Order.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    if (!garments || !Array.isArray(garments) || garments.length === 0) {
+      return Response.json(
+        { success: false, message: "At least one garment is required" },
+        { status: 400 },
+      );
+    }
 
-    const totalOrders = await Order.countDocuments(filter);
+    // --- Price calculation ---
+    const processedGarments = [];
+    let totalAmount = 0;
 
-    return NextResponse.json({
-      success: true,
-      count: orders.length,
-      totalPages: Math.ceil(totalOrders / limit),
-      currentPage: page,
-      orders,
-    });
+    for (const garment of garments) {
+      const { type, quantity } = garment;
+
+      if (!GARMENT_PRICES[type]) {
+        return Response.json(
+          { success: false, message: `Unknown garment type: "${type}"` },
+          { status: 400 },
+        );
+      }
+
+      const qty = parseInt(quantity);
+      if (!qty || qty < 1) {
+        return Response.json(
+          {
+            success: false,
+            message: `Quantity must be at least 1 for ${type}`,
+          },
+          { status: 400 },
+        );
+      }
+
+      const pricePerItem = GARMENT_PRICES[type];
+      const subtotal = pricePerItem * qty;
+      totalAmount += subtotal;
+
+      processedGarments.push({ type, quantity: qty, pricePerItem, subtotal });
+    }
+
+    // Estimated delivery = 3 days from now
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + 3);
+
+    // Retry once on duplicate orderId (extremely rare but safe)
+    let order;
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
+        const orderId = generateOrderId();
+        order = await Order.create({
+          orderId,
+          customerName: customerName.trim(),
+          phoneNumber: phoneNumber.trim(),
+          garments: processedGarments,
+          totalAmount,
+          estimatedDelivery,
+          status: "RECEIVED",
+        });
+        break;
+      } catch (err) {
+        if (err.code === 11000) {
+          // Duplicate orderId — retry with a new one
+          attempts++;
+          if (attempts >= 3) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    return Response.json(
+      { success: true, orderId: order.orderId, totalAmount, order },
+      { status: 201 },
+    );
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
+    console.error("POST /api/orders error:", error);
+    return Response.json(
+      { success: false, message: "Server error" },
       { status: 500 },
     );
   }

@@ -1,8 +1,70 @@
 import Link from "next/link";
-import DashboardStats from "../../components/DashboardStats";
-import StatusBadge from "../../components/StatusBadge";
-import dbConnect from "../../lib/mongodb";
-import Order from "../../models/Order";
+import DashboardStats from "@/components/DashboardStats";
+import StatusBadge from "@/components/StatusBadge";
+import connectDB from "@/lib/mongodb";
+import Order from "@/models/Order";
+
+// Query MongoDB directly — no self-HTTP-fetch (breaks on Vercel)
+async function getDashboardData() {
+  try {
+    await connectDB();
+
+    const [result] = await Order.aggregate([
+      {
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: "$totalAmount" },
+              },
+            },
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          recentOrders: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            {
+              $project: {
+                orderId: 1,
+                customerName: 1,
+                totalAmount: 1,
+                status: 1,
+                createdAt: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const summary = result.summary[0] || { totalOrders: 0, totalRevenue: 0 };
+
+    const byStatus = { RECEIVED: 0, PROCESSING: 0, READY: 0, DELIVERED: 0 };
+    result.byStatus.forEach(({ _id, count }) => {
+      byStatus[_id] = count;
+    });
+
+    return {
+      success: true,
+      totalOrders: summary.totalOrders,
+      totalRevenue: summary.totalRevenue,
+      byStatus,
+      recentOrders: result.recentOrders,
+    };
+  } catch (error) {
+    console.error("Dashboard DB error:", error);
+    return null;
+  }
+}
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -13,66 +75,7 @@ function formatDate(dateStr) {
 }
 
 export default async function DashboardPage() {
-  let data = null;
-
-  try {
-    await dbConnect();
-
-    // 1. Get total orders count
-    const totalOrders = await Order.countDocuments();
-
-    // 2. Get total revenue (sum of all totalAmounts)
-    const revenueAggregation = await Order.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$totalAmount" },
-        },
-      },
-    ]);
-    const totalRevenue =
-      revenueAggregation.length > 0 ? revenueAggregation[0].totalRevenue : 0;
-
-    // 3. Count orders per status
-    const statusAggregation = await Order.aggregate([
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    // Format the status counts into a clean object
-    const byStatus = {
-      RECEIVED: 0,
-      PROCESSING: 0,
-      READY: 0,
-      DELIVERED: 0,
-    };
-
-    statusAggregation.forEach((stat) => {
-      if (byStatus[stat._id] !== undefined) {
-        byStatus[stat._id] = stat.count;
-      }
-    });
-
-    const recentOrders = await Order.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select("orderId customerName status totalAmount createdAt _id");
-
-    data = {
-      success: true,
-      totalOrders,
-      totalRevenue,
-      byStatus,
-      recentOrders,
-    };
-  } catch (error) {
-    console.error("Error loading dashboard data:", error);
-    data = null;
-  }
+  const data = await getDashboardData();
 
   if (!data || !data.success) {
     return (
@@ -81,7 +84,7 @@ export default async function DashboardPage() {
           Failed to load dashboard data.
         </p>
         <p className="text-sm text-gray-400 mt-1">
-          Check your MongoDB connection in .env.local
+          Check your MONGODB_URI in environment variables.
         </p>
       </div>
     );

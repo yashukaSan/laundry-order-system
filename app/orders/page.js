@@ -1,68 +1,69 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import OrderCard from "../../components/OrderCard";
+import OrderCard from "@/components/OrderCard";
+import FilterBar from "@/components/FilterBar";
+import connectDB from "@/lib/mongodb";
+import Order from "@/models/Order";
 
-export default function OrdersPage() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+// Query MongoDB directly — no self-HTTP-fetch (breaks on Vercel)
+async function getOrders(searchParams) {
+  try {
+    await connectDB();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch("/api/orders");
-        const data = await res.json();
-        if (!data.success) {
-          setError(data.error || "Failed to load orders.");
-        } else {
-          setOrders(data.orders);
-        }
-      } catch (err) {
-        setError("Unable to load orders.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const filter = {};
 
-    fetchOrders();
-  }, []);
+    const status = searchParams?.status;
+    const search = searchParams?.search;
+    const phone = searchParams?.phone;
+    const garment = searchParams?.garment;
 
-  const handleDelete = async (orderId) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this order? This action cannot be undone."
-    );
-    if (!confirmed) return;
-
-    try {
-      const res = await fetch(`/api/orders/${orderId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.message || "Failed to delete order.");
-      }
-
-      setOrders((current) => current.filter((order) => order.orderId !== orderId));
-    } catch (err) {
-      setError(err.message || "Unable to delete order.");
+    if (
+      status &&
+      ["RECEIVED", "PROCESSING", "READY", "DELIVERED"].includes(status)
+    ) {
+      filter.status = status;
     }
-  };
+    if (search) {
+      filter.customerName = { $regex: search, $options: "i" };
+    }
+    if (phone) {
+      filter.phoneNumber = { $regex: phone, $options: "i" };
+    }
+    if (garment) {
+      filter["garments.type"] = { $regex: garment, $options: "i" };
+    }
 
-  if (loading) {
-    return (
-      <div className="text-center py-24 text-gray-500">Loading orders...</div>
-    );
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    const total = await Order.countDocuments(filter);
+
+    return { success: true, orders, total };
+  } catch (error) {
+    console.error("Orders DB error:", error);
+    return null;
   }
+}
+
+export default async function OrdersPage({ searchParams }) {
+  // In Next.js 14 searchParams is a plain object — no await needed
+  const params = searchParams || {};
+  const data = await getOrders(params);
+
+  const activeFilters = [params.status, params.search, params.garment].filter(
+    Boolean,
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-500 mt-1">View all orders and navigate to order details.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {data?.total ?? "—"} order{data?.total !== 1 ? "s" : ""} found
+          </p>
         </div>
         <Link
           href="/orders/create"
@@ -72,21 +73,39 @@ export default function OrdersPage() {
         </Link>
       </div>
 
-      {error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-6">
-          {error}
+      {/* Filter Bar — wrapped in Suspense because it uses useSearchParams internally */}
+      <Suspense
+        fallback={<div className="h-11 bg-gray-100 rounded-lg animate-pulse" />}
+      >
+        <FilterBar />
+      </Suspense>
+
+      {/* Orders Grid */}
+      {!data || !data.success ? (
+        <div className="text-center py-20 text-red-500 font-medium">
+          Failed to load orders. Check your MONGODB_URI.
         </div>
-      ) : orders.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-          <p className="text-gray-500">No orders found yet.</p>
-          <Link href="/orders/create" className="text-indigo-600 hover:underline mt-3 inline-block">
-            Create the first order
-          </Link>
+      ) : data.orders.length === 0 ? (
+        <div className="bg-white border border-dashed border-gray-300 rounded-xl p-16 text-center">
+          <p className="text-4xl mb-3">🧺</p>
+          <p className="text-gray-500 font-medium">
+            {activeFilters.length > 0
+              ? "No orders match your filters."
+              : "No orders yet."}
+          </p>
+          {activeFilters.length === 0 && (
+            <Link
+              href="/orders/create"
+              className="text-indigo-600 text-sm font-medium hover:underline mt-2 inline-block"
+            >
+              Create your first order
+            </Link>
+          )}
         </div>
       ) : (
-        <div className="grid gap-4">
-          {orders.map((order) => (
-            <OrderCard key={order.orderId} order={order} onDelete={handleDelete} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.orders.map((order) => (
+            <OrderCard key={order.orderId} order={order} />
           ))}
         </div>
       )}

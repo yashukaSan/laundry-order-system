@@ -4,6 +4,7 @@ import Link from 'next/link';
 import StatusBadge from './StatusBadge';
 
 function formatDate(dateStr) {
+    if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -11,7 +12,7 @@ function formatDate(dateStr) {
     });
 }
 
-export default function OrderCard({ order, onDelete }) {
+export default function OrderCard({ order }) {
     const { orderId, customerName, phoneNumber, totalAmount, status, createdAt, garments } = order;
 
     const garmentSummary = garments
@@ -19,19 +20,20 @@ export default function OrderCard({ order, onDelete }) {
         .join(', ');
 
     return (
-        <div className="relative">
-            <Link href={`/orders/${orderId || order._id}`}>
-                <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group">
+        <Link href={`/orders/${orderId}`}>
+            <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group">
                 {/* Top row */}
                 <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                        <p className="text-xs font-mono text-gray-400 mb-1">{orderId}</p>
-                        <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                    <div className="min-w-0">
+                        <p className="text-xs font-mono text-gray-400 mb-1 truncate">{orderId}</p>
+                        <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate">
                             {customerName}
                         </h3>
                         <p className="text-sm text-gray-500">{phoneNumber}</p>
                     </div>
-                    <StatusBadge status={status} />
+                    <div className="flex-shrink-0">
+                        <StatusBadge status={status} />
+                    </div>
                 </div>
 
                 {/* Garments summary */}
@@ -46,19 +48,5 @@ export default function OrderCard({ order, onDelete }) {
                 </div>
             </div>
         </Link>
-        {onDelete && (
-            <button
-                type="button"
-                onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onDelete(orderId);
-                }}
-                className="absolute top-14 right-8 bg-red-100 text-red-700 px-3 py-1.5 text-xs font-semibold rounded-lg hover:bg-red-200 transition-colors"
-            >
-                Delete
-            </button>
-        )}
-        </div>
     );
 }
