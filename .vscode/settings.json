@@ -1,0 +1,13 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/d:\\DeveloperMVP\\laundry-order-system\\res.aux": true,
+        "**/d:\\DeveloperMVP\\laundry-order-system\\res.log": true,
+        "**/d:\\DeveloperMVP\\laundry-order-system\\res.gz": true,
+        "**/d:\\DeveloperMVP\\laundry-order-system\\res.out": true
+    }
+}

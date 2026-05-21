@@ -62,7 +62,7 @@ async function getDashboardData() {
     };
   } catch (error) {
     console.error("Dashboard DB error:", error);
-    return null;
+    return { success: false, message: error.message };
   }
 }
 
@@ -77,7 +77,25 @@ function formatDate(dateStr) {
 export default async function DashboardPage() {
   const data = await getDashboardData();
 
-  if (!data || !data.success) {
+  if (!data) {
+    return (
+      <div className="text-center py-20">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 inline-block">
+          <p className="text-red-600 font-semibold text-lg">Failed to Load Dashboard</p>
+          <p className="text-red-500 text-sm mt-2">
+            Unable to connect to database. Please check:
+          </p>
+          <ul className="text-red-500 text-sm mt-3 space-y-1 text-left">
+            <li>✗ MONGODB_URI is set in environment variables</li>
+            <li>✗ MongoDB cluster is accessible</li>
+            <li>✗ Network access is allowed (IP: 0.0.0.0/0)</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data.success) {
     return (
       <div className="text-center py-20">
         <p className="text-red-500 font-medium">

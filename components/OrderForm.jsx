@@ -28,7 +28,7 @@ export default function OrderForm() {
     const [garments, setGarments] = useState([defaultGarment()]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState(null); // { orderId, totalAmount }
+    const [success, setSuccess] = useState(null); 
 
     // Calculate estimated total on client side
     const estimatedTotal = garments.reduce((sum, g) => {
@@ -44,7 +44,7 @@ export default function OrderForm() {
     const addGarment = () => setGarments((prev) => [...prev, defaultGarment()]);
 
     const removeGarment = (index) => {
-        if (garments.length === 1) return; // keep at least one
+        if (garments.length === 1) return; 
         setGarments((prev) => prev.filter((_, i) => i !== index));
     };
 
@@ -75,7 +75,6 @@ export default function OrderForm() {
 
             setSuccess({ orderId: data.orderId, totalAmount: data.totalAmount });
 
-            // Redirect after 3 seconds
             setTimeout(() => router.push('/orders'), 3000);
         } catch (err) {
             setError('Network error. Please try again.');
@@ -84,7 +83,6 @@ export default function OrderForm() {
         }
     };
 
-    // Success banner
     if (success) {
         return (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
@@ -103,7 +101,6 @@ export default function OrderForm() {
 
     return (
         <div className="space-y-6">
-            {/* Error message */}
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                     {error}
@@ -113,7 +110,6 @@ export default function OrderForm() {
             {/* Customer Info */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
                 <h2 className="font-semibold text-gray-800">Customer Information</h2>
-
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         Customer Name <span className="text-red-500">*</span>
@@ -126,7 +122,6 @@ export default function OrderForm() {
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                 </div>
-
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         Phone Number <span className="text-red-500">*</span>
@@ -154,7 +149,6 @@ export default function OrderForm() {
                     </button>
                 </div>
 
-                {/* Header row */}
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-gray-500 px-1">
                     <div className="col-span-5">TYPE</div>
                     <div className="col-span-3">QTY</div>
@@ -163,11 +157,10 @@ export default function OrderForm() {
                 </div>
 
                 {garments.map((g, index) => {
-                    const subtotal = (GARMENT_PRICES[g.type] || 0) * (parseInt(g.quantity));
+                    const subtotal = (GARMENT_PRICES[g.type] || 0) * (parseInt(g.quantity) || 0);
 
                     return (
                         <div key={index} className="grid grid-cols-12 gap-3 items-center">
-                            {/* Garment Type */}
                             <div className="col-span-5">
                                 <select
                                     value={g.type}
@@ -182,7 +175,6 @@ export default function OrderForm() {
                                 </select>
                             </div>
 
-                            {/* Quantity */}
                             <div className="col-span-3">
                                 <input
                                     type="number"
@@ -193,43 +185,40 @@ export default function OrderForm() {
                                 />
                             </div>
 
-                            {/* Subtotal */}
                             <div className="col-span-3">
                                 <p className="text-sm font-medium text-gray-700 py-2.5 px-3 bg-gray-50 rounded-lg">
                                     ₹{subtotal}
                                 </p>
                             </div>
 
-                            {/* Remove */}
-                            <div className="col-span-1 flex justify-center">
-                                <button
-                                    onClick={() => removeGarment(index)}
-                                    disabled={garments.length === 1}
-                                    className="text-gray-300 hover:text-red-500 disabled:cursor-not-allowed text-lg leading-none transition-colors"
-                                    title="Remove garment"
-                                >
-                                    ✕
-                                </button>
+                            <div className="col-span-1 text-center">
+                                {garments.length > 1 && (
+                                    <button
+                                        onClick={() => removeGarment(index)}
+                                        className="text-red-500 hover:text-red-700 font-bold"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
                             </div>
                         </div>
                     );
                 })}
 
-                {/* Total */}
-                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                    <span className="font-semibold text-gray-700">Estimated Total</span>
-                    <span className="text-xl font-bold text-indigo-700">₹{estimatedTotal}</span>
+                {/* Total Display & Submit Button */}
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-600">
+                        Estimated Total: <span className="text-lg font-bold text-gray-900">₹{estimatedTotal}</span>
+                    </div>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
+                    >
+                        {loading ? 'Creating...' : 'Submit Order'}
+                    </button>
                 </div>
             </div>
-
-            {/* Submit */}
-            <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-            >
-                {loading ? 'Creating Order...' : 'Create Order'}
-            </button>
         </div>
     );
 }
