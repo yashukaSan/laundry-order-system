@@ -1,9 +1,12 @@
-import connectDB from "@/lib/mongodb";
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
 
 // GET /api/dashboard — Returns summary stats
+// GET /api/dashboard — Returns summary stats
 export async function GET() {
   try {
+    await connectDB();
     await connectDB();
 
     const [result] = await Order.aggregate([

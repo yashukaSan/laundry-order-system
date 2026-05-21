@@ -1,19 +1,19 @@
-﻿"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 
-const STATUS_OPTIONS = ["RECEIVED", "PROCESSING", "READY", "DELIVERED"];
+const STATUS_OPTIONS = ['RECEIVED', 'PROCESSING', 'READY', 'DELIVERED'];
 
 function formatDate(dateStr) {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 }
 
@@ -23,10 +23,10 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [newStatus, setNewStatus] = useState("");
+  const [error, setError] = useState('');
+  const [newStatus, setNewStatus] = useState('');
   const [updating, setUpdating] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -37,7 +37,7 @@ export default function OrderDetailPage() {
         const data = await res.json();
 
         if (!data.success) {
-          setError(data.message || "Order not found");
+          setError(data.message || 'Order not found');
         } else {
           setOrder(data.order);
           setNewStatus(data.order.status);
@@ -58,8 +58,8 @@ export default function OrderDetailPage() {
     setUpdating(true);
     try {
       const res = await fetch(`/api/orders/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
@@ -68,13 +68,13 @@ export default function OrderDetailPage() {
         setToast(`Error: ${data.message}`);
       } else {
         setOrder(data.order);
-        setToast("Status updated successfully!");
+        setToast('Status updated successfully!');
       }
     } catch {
-      setToast("Network error. Please try again.");
+      setToast('Network error. Please try again.');
     } finally {
       setUpdating(false);
-      setTimeout(() => setToast(""), 3000);
+      setTimeout(() => setToast(''), 3000);
     }
   };
 
@@ -98,7 +98,7 @@ export default function OrderDetailPage() {
         <p className="text-red-500 font-medium mb-4">{error}</p>
         <Link
           href="/orders"
-          className="text-indigo-600 hover:underline text-sm font-medium"
+          className="text-indigo-600 hover:underline text-sm font-medium font-medium"
         >
           ← Back to Orders
         </Link>
@@ -111,10 +111,10 @@ export default function OrderDetailPage() {
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-lg transition-all ${
-            toast.startsWith("Error")
-              ? "bg-red-100 text-red-700 border border-red-200"
-              : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+          className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-lg transition-all transition-all ${
+            toast.startsWith('Error')
+              ? 'bg-red-100 text-red-700 border border-red-200 border border-red-200'
+              : 'bg-emerald-100 text-emerald-700 border border-emerald-200 border border-emerald-200'
           }`}
         >
           {toast}
@@ -139,7 +139,7 @@ export default function OrderDetailPage() {
             <h1 className="text-xl font-bold text-gray-900">
               {order.customerName}
             </h1>
-            <p className="text-gray-500 mt-0.5">{order.phoneNumber}</p>
+            <p className="text-gray-500 mt-0.5 mt-0.5">{order.phoneNumber}</p>
           </div>
           <StatusBadge status={order.status} />
         </div>
@@ -186,7 +186,7 @@ export default function OrderDetailPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {order.garments.map((g, i) => (
-              <tr key={i} className="hover:bg-gray-50">
+              <tr key={i} className="hover:bg-gray-50" className="hover:bg-gray-50">
                 <td className="px-6 py-3 font-medium text-gray-800">
                   {g.type}
                 </td>
@@ -210,11 +210,19 @@ export default function OrderDetailPage() {
               <td className="px-6 py-4 text-right font-bold text-indigo-700 text-lg">
                 ₹{order.totalAmount}
               </td>
+            <tr className="bg-indigo-50 border-t-2 border-indigo-100">
+              <td colSpan={3} className="px-6 py-4 font-bold text-gray-700">
+                Total
+              </td>
+              <td className="px-6 py-4 text-right font-bold text-indigo-700 text-lg">
+                ₹{order.totalAmount}
+              </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
+      {/* Status Update */}
       {/* Status Update */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
         <h2 className="font-semibold text-gray-800">Update Status</h2>
@@ -226,7 +234,9 @@ export default function OrderDetailPage() {
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
+                
                 {s}
+              
               </option>
             ))}
           </select>
@@ -235,7 +245,7 @@ export default function OrderDetailPage() {
             disabled={updating || newStatus === order.status}
             className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {updating ? "Updating..." : "Update"}
+            {updating ? 'Updating...' : 'Update'}
           </button>
         </div>
         {newStatus === order.status && (

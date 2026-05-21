@@ -100,6 +100,7 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 
 ## 🌍 Deploying to Vercel
 
+<<<<<<< HEAD
 ### ⚠️ CRITICAL: Environment Variables
 
 1. Push your code to a **public GitHub repository**
@@ -177,6 +178,66 @@ laundry-order-system/
 └── README.md
 ```
 
+=======
+1. Push your code to a **public GitHub repository**
+2. Go to [vercel.com](https://vercel.com) → **New Project** → Import from GitHub
+3. In **Environment Variables**, add:
+
+   | Key | Value |
+   |---|---|
+   | `MONGODB_URI` | Your MongoDB Atlas connection string |
+
+4. Click **Deploy**
+5. Done — your app is live ✅
+
+<br/>
+
+## 📁 Project Structure
+
+```
+laundry-order-system/
+│
+├── app/
+│   ├── api/
+│   │   ├── orders/
+│   │   │   ├── route.js                 ← GET (list), POST (create)
+│   │   │   └── [id]/
+│   │   │       ├── route.js             ← GET (single), DELETE
+│   │   │       └── status/
+│   │   │           └── route.js         ← PATCH (update status)
+│   │   └── dashboard/
+│   │       └── route.js                 ← GET (stats)
+│   │
+│   ├── dashboard/page.js                ← Dashboard page
+│   ├── orders/page.js                   ← Orders list page
+│   ├── orders/create/page.js            ← Create order page
+│   ├── orders/[id]/page.js              ← Order detail page
+│   ├── layout.js                        ← Root layout + Navbar
+│   └── globals.css                      ← Tailwind base styles
+│
+├── components/
+│   ├── Navbar.jsx                       ← Top navigation
+│   ├── OrderCard.jsx                    ← Order card for list view
+│   ├── OrderForm.jsx                    ← Create order form
+│   ├── StatusBadge.jsx                  ← Colored status pill
+│   ├── FilterBar.jsx                    ← Search + filter controls
+│   └── DashboardStats.jsx              ← Stats card grid
+│
+├── lib/
+│   ├── mongodb.js                       ← MongoDB singleton connection
+│   ├── priceConfig.js                   ← Hardcoded garment prices
+│   └── generateOrderId.js              ← Unique order ID generator
+│
+├── models/
+│   └── Order.js                         ← Mongoose schema
+│
+├── postman_collection.json              ← Ready-to-import API collection
+├── jsconfig.json                        ← Path alias config (@/)
+├── .env.example                         ← Sample environment file
+└── README.md
+```
+
+>>>>>>> 52c9bd6cb0634554982173e1d67c387169e00424
 <br/>
 
 ## 📡 API Reference
@@ -422,4 +483,8 @@ MIT — free to use, modify, and distribute.
 
 ---
 
+<<<<<<< HEAD
 <p align="center">Built with ❤️ using Next.js + MongoDB</p>
+=======
+<p align="center">Built with ❤️ using Next.js + MongoDB</p>
+>>>>>>> 52c9bd6cb0634554982173e1d67c387169e00424

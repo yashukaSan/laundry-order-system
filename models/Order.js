@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const garmentSchema = new mongoose.Schema({
   type: { type: String, required: true },
@@ -6,7 +6,19 @@ const garmentSchema = new mongoose.Schema({
   pricePerItem: { type: Number, required: true },
   subtotal: { type: Number, required: true },
 });
+  type: { type: String, required: true },
+  quantity: { type: Number, required: true, min: 1 },
+  pricePerItem: { type: Number, required: true },
+  subtotal: { type: Number, required: true },
+});
 
+const orderSchema = new mongoose.Schema(
+  {
+    orderId: { type: String, required: true, unique: true, index: true },
+    customerName: { type: String, required: true, trim: true },
+    phoneNumber: { type: String, required: true, trim: true },
+    garments: { type: [garmentSchema], required: true },
+    totalAmount: { type: Number, required: true },
 const orderSchema = new mongoose.Schema(
   {
     orderId: { type: String, required: true, unique: true, index: true },
