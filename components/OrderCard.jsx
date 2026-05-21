@@ -16,7 +16,7 @@ export default function OrderCard({ order }) {
     const { orderId, customerName, phoneNumber, totalAmount, status, createdAt, garments } = order;
 
     const garmentSummary = garments
-        .map((g) => `${g.type} ×${g.quantity}`)
+        .map((g) => `${g.type} x${g.quantity}`)
         .join(', ');
 
     return (
