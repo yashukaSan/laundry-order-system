@@ -1,24 +1,14 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
+// Sub-schema for individual garment items
 const garmentSchema = new mongoose.Schema({
   type: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
   pricePerItem: { type: Number, required: true },
   subtotal: { type: Number, required: true },
 });
-  type: { type: String, required: true },
-  quantity: { type: Number, required: true, min: 1 },
-  pricePerItem: { type: Number, required: true },
-  subtotal: { type: Number, required: true },
-});
 
-const orderSchema = new mongoose.Schema(
-  {
-    orderId: { type: String, required: true, unique: true, index: true },
-    customerName: { type: String, required: true, trim: true },
-    phoneNumber: { type: String, required: true, trim: true },
-    garments: { type: [garmentSchema], required: true },
-    totalAmount: { type: Number, required: true },
+// Main order schema
 const orderSchema = new mongoose.Schema(
   {
     orderId: { type: String, required: true, unique: true, index: true },
@@ -36,8 +26,6 @@ const orderSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Converts _id (ObjectId) to string automatically when sending JSON
-    // Prevents "cannot serialize object with non-string keys" errors on Vercel
     toJSON: {
       transform(doc, ret) {
         ret._id = ret._id.toString();

@@ -1,7 +1,10 @@
 import connectDB from "@/lib/mongodb";
 import Order from "@/models/Order";
-import GARMENT_PRICES from "@/lib/priceConfig";
+import GARMENT_PRICES from "@/lib/priceconfig";
 import generateOrderId from "@/lib/generateOrderId";
+
+// Forces Next.js to run this route dynamically instead of caching/statically building it
+export const dynamic = "force-dynamic";
 
 // GET /api/orders — List all orders with optional filters
 export async function GET(request) {
@@ -129,12 +132,12 @@ export async function POST(request) {
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 3);
 
-    // Retry once on duplicate orderId (extremely rare but safe)
     let order;
     let attempts = 0;
     while (attempts < 3) {
       try {
-        const orderId = generateOrderId();
+        // Added await in case your order generation handles promises
+        const orderId = await generateOrderId();
         order = await Order.create({
           orderId,
           customerName: customerName.trim(),
@@ -147,7 +150,6 @@ export async function POST(request) {
         break;
       } catch (err) {
         if (err.code === 11000) {
-          // Duplicate orderId — retry with a new one
           attempts++;
           if (attempts >= 3) throw err;
         } else {
