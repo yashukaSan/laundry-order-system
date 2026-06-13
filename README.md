@@ -6,7 +6,7 @@
 
 ## 🚀 Live Demo
 
-🔗 **[laundry-order-system.vercel.app](https://laundry-order-system.vercel.app)** *(update this link after deployment)*
+🔗 **[laundry-order-system.vercel.app](https://laundry-order-system-b5qn.vercel.app/dashboard))** *(update this link after deployment)*
 
 <br/>
 
