@@ -6,13 +6,7 @@
 
 ## 🚀 Live Demo
 
-🔗 **[laundry-order-system.vercel.app](https://laundry-order-system-b5qn.vercel.app/dashboard))** *(update this link after deployment)*
-
-<br/>
-
-## 📸 Screenshots
-
-> *(Add screenshots here after deployment — Dashboard, Orders List, Create Order, Order Detail)*
+🔗 **[laundry-order-system.vercel.app](https://laundry-order-system-b5qn.vercel.app/dashboard))** 
 
 <br/>
 
